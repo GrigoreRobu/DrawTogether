@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 
 const HUB_URL = import.meta.env.VITE_HUB_URL;
-const USER_URL=import.meta.env.VITE_USER_API_URL;
+const USER_URL = import.meta.env.VITE_USER_API_URL;
 
 export default function App() {
   const canvasRef = useRef(null);
@@ -11,6 +11,7 @@ export default function App() {
   const lastPosRef = useRef({ x: 0, y: 0 });
   const connectionRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
+  const pendingCanvasRef = useRef(null);
 
   const [status, setStatus] = useState("Connecting...");
   const [usersCount, setUsersCount] = useState(0);
@@ -19,14 +20,14 @@ export default function App() {
   const [eraser, setEraser] = useState(false);
 
   useEffect(() => {
-  const fetchCount = async () => {
-    const response = await fetch(USER_URL);
-    const count = await response.json();
-    setUsersCount(count);
-  };
+    const fetchCount = async () => {
+      const response = await fetch(USER_URL);
+      const count = await response.json();
+      setUsersCount(count);
+    };
 
-  fetchCount();
-}, []);
+    fetchCount();
+  }, []);
 
   const handleConnect = async () => {
     const connection = new signalR.HubConnectionBuilder()
@@ -45,6 +46,9 @@ export default function App() {
 
     connection.on("UserLeft", (count) => {
       setUsersCount(count);
+    });
+    connection.on("RecieveCanvas", (imageData) => {
+      pendingCanvasRef.current = imageData;
     });
 
     connection.on("RoomFull", () => {
@@ -66,7 +70,7 @@ export default function App() {
       .start()
       .then(() => {
         setStatus("Connected");
-        setIsConnected(true)
+        setIsConnected(true);
       })
       .catch((err) => {
         console.error(err);
@@ -83,7 +87,10 @@ export default function App() {
     canvas.height = window.innerHeight * 0.7;
     const ctx = canvas.getContext("2d");
     ctx.lineCap = "round";
-    ctxRef.current = ctx;
+    ctxRef.current=ctx;
+    const img = new Image();
+    if(pendingCanvasRef.current!=null){img.src = pendingCanvasRef.current;}
+    img.onload = () => ctx.drawImage(img, 0, 0);
   }, [isConnected]);
 
   const getPos = (e) => {
@@ -117,13 +124,16 @@ export default function App() {
   };
 
   const handleMouseUp = () => {
+    connectionRef.current
+      .invoke("SaveCanvas", canvasRef.current.toDataURL("image/png"))
+      .catch(console.error);
     drawingRef.current = false;
   };
 
   const drawLine = (x0, y0, x1, y1, color, width, send) => {
     const ctx = ctxRef.current;
     if (!ctx) return;
-    eraser?ctx.strokeStyle = "#ffffff":ctx.strokeStyle = color;
+    eraser ? (ctx.strokeStyle = "#ffffff") : (ctx.strokeStyle = color);
     ctx.lineWidth = width;
     ctx.beginPath();
     ctx.moveTo(x0, y0);
@@ -132,17 +142,14 @@ export default function App() {
     ctx.closePath();
 
     if (send && connectionRef.current && eraser) {
-      
       connectionRef.current
         .invoke("EraseDrawing", x0, y0, x1, y1, "#ffffff", width)
         .catch((err) => console.error(err));
-    }
-    else if (send && connectionRef.current) {
+    } else if (send && connectionRef.current) {
       connectionRef.current
         .invoke("SendDraw", x0, y0, x1, y1, color, width)
         .catch((err) => console.error(err));
     }
-    
   };
 
   const clearCanvas = () => {
@@ -158,7 +165,7 @@ export default function App() {
       connectionRef.current.invoke("ClearCanvas").catch(console.error);
     }
   };
-  
+
   return (
     <div>
       {isConnected ? (
@@ -187,8 +194,11 @@ export default function App() {
               />
               <span style={{ marginLeft: "0.5rem" }}>{width}</span>
             </label>
-            <button onClick={(e)=>{setEraser(!eraser)}}
-            style={{ marginLeft: "1rem", padding: "0.3rem 0.8rem" }}
+            <button
+              onClick={(e) => {
+                setEraser(!eraser);
+              }}
+              style={{ marginLeft: "1rem", padding: "0.3rem 0.8rem" }}
             >
               Eraser
             </button>
@@ -224,9 +234,11 @@ export default function App() {
       ) : (
         <div>
           <h1>Wanna connect? {usersCount} user(s) online.</h1>
-          <button variant="text" onClick={(e)=>handleConnect()}>Connect</button>
+          <button variant="text" onClick={(e) => handleConnect()}>
+            Connect
+          </button>
         </div>
       )}
     </div>
-  )
+  );
 }
