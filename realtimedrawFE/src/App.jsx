@@ -87,10 +87,12 @@ export default function App() {
     canvas.height = window.innerHeight * 0.7;
     const ctx = canvas.getContext("2d");
     ctx.lineCap = "round";
-    ctxRef.current=ctx;
-    const img = new Image();
-    if(pendingCanvasRef.current!=null){img.src = pendingCanvasRef.current;}
-    img.onload = () => ctx.drawImage(img, 0, 0);
+    ctxRef.current = ctx;
+    if (pendingCanvasRef.current != null) {
+      const img = new Image();
+      img.src = pendingCanvasRef.current;
+      img.onload = () => ctx.drawImage(img, 0, 0);
+    }
   }, [isConnected]);
 
   const getPos = (e) => {
