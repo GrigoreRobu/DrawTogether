@@ -1,0 +1,6 @@
+@RealtimeDraw_HostAddress = http://localhost:5074
+
+GET {{RealtimeDraw_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
