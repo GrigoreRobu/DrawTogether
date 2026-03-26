@@ -12,6 +12,7 @@ export default function App() {
   const connectionRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const pendingCanvasRef = useRef(null);
+  const snapshotsRef = useRef([]);
 
   const [status, setStatus] = useState("Connecting...");
   const [usersCount, setUsersCount] = useState(0);
@@ -83,8 +84,8 @@ export default function App() {
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
-    canvas.width = window.innerWidth * 0.8;
-    canvas.height = window.innerHeight * 0.7;
+    canvas.width = Math.min(window.innerWidth, 1200);
+    canvas.height = Math.min(window.innerHeight * 0.8, 800);
     const ctx = canvas.getContext("2d");
     ctx.lineCap = "round";
     ctxRef.current = ctx;
@@ -92,6 +93,10 @@ export default function App() {
       const img = new Image();
       img.src = pendingCanvasRef.current;
       img.onload = () => ctx.drawImage(img, 0, 0);
+    }
+      if (snapshotsRef.current.length === 0) {
+      const initialState = canvasRef.current.toDataURL("image/png");
+      snapshotsRef.current.push(initialState);
     }
   }, [isConnected]);
 
@@ -108,6 +113,7 @@ export default function App() {
     if (status !== "Connected") return;
     drawingRef.current = true;
     lastPosRef.current = getPos(e);
+    snapshotsRef.current.push(canvasRef.current.toDataURL("image/png"));
   };
 
   const handleMouseMove = (e) => {
@@ -129,9 +135,21 @@ export default function App() {
     connectionRef.current
       .invoke("SaveCanvas", canvasRef.current.toDataURL("image/png"))
       .catch(console.error);
+
     drawingRef.current = false;
   };
 
+  const handleUndo = () =>{
+    clearCanvas();
+    const ctx = ctxRef.current;
+    if (snapshotsRef.current.length>1) {
+      const img = new Image();
+      snapshotsRef.current.pop();
+      img.src = snapshotsRef.current.at(-1);
+      clearCanvas();
+      img.onload = () => ctx.drawImage(img, 0, 0);
+    }
+  }
   const drawLine = (x0, y0, x1, y1, color, width, send) => {
     const ctx = ctxRef.current;
     if (!ctx) return;
@@ -171,12 +189,12 @@ export default function App() {
   return (
     <div>
       {isConnected ? (
-        <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
-          <h1>Realtime Drawing (max 3 users)</h1>
+        <div>
+          <h1>Realtime Drawing</h1>
           <p>Status: {status}</p>
           <p>Users connected: {usersCount}</p>
 
-          <div style={{ marginBottom: "0.5rem" }}>
+          <div className="toolbar">
             <label>
               Color:{" "}
               <input
@@ -185,7 +203,7 @@ export default function App() {
                 onChange={(e) => setColor(e.target.value)}
               />
             </label>
-            <label style={{ marginLeft: "1rem" }}>
+            <label>
               Width:{" "}
               <input
                 type="range"
@@ -196,20 +214,16 @@ export default function App() {
               />
               <span style={{ marginLeft: "0.5rem" }}>{width}</span>
             </label>
+
             <button
               onClick={(e) => {
                 setEraser(!eraser);
               }}
-              style={{ marginLeft: "1rem", padding: "0.3rem 0.8rem" }}
             >
               Eraser
             </button>
-            <button
-              onClick={handleClearClick}
-              style={{ marginLeft: "1rem", padding: "0.3rem 0.8rem" }}
-            >
-              Clear
-            </button>
+            <button onClick={handleClearClick}>Clear</button>
+            <button onClick={handleUndo}>Undo</button>
           </div>
 
           <canvas

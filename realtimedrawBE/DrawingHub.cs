@@ -47,5 +47,6 @@ public class DrawingHub : Hub
     public async Task SaveCanvas(string ImageData)
     {
         image64 = ImageData;
+        Console.WriteLine(image64);
     }
 }
