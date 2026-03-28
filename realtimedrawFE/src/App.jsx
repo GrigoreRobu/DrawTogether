@@ -50,35 +50,32 @@ export default function App() {
     });
     connection.on("ReceiveCanvas", (imageData) => {
       console.log("ReceiveCanvas primit", imageData?.length);
-       console.log("handler intrat, ctxRef:", !!ctxRef.current);
+      console.log("handler intrat, ctxRef:", !!ctxRef.current);
       if (ctxRef.current) {
         const img = new Image();
         if (!imageData) {
           clearCanvas();
           console.log("clearCanvas direct");
         } else {
-            const img = new Image();
-            img.src = imageData;
-            img.onload = () => {
-                console.log("img.onload fired");
-                clearCanvas();
-                ctxRef.current.drawImage(img, 0, 0);
-            };
+          const img = new Image();
+          img.src = imageData;
+          img.onload = () => {
+            console.log("img.onload fired");
+            clearCanvas();
+            ctxRef.current.drawImage(img, 0, 0);
+          };
         }
-    } else {
+      } else {
         pendingCanvasRef.current = imageData;
-    }
+      }
     });
 
     connection.on("RoomFull", () => {
       setStatus("Room is full max 4 users.");
     });
 
-    connection.on("ReceiveDraw", (x0, y0, x1, y1, color, width) => {
-      drawLine(x0, y0, x1, y1, color, width, false);
-    });
-    connection.on("ReceiveErase", (x0, y0, x1, y1, color, width) => {
-      drawLine(x0, y0, x1, y1, "#ffffff", width, false);
+    connection.on("ReceiveDraw", (x0, y0, x1, y1, color, width, isEraser) => {
+      drawLine(x0, y0, x1, y1, color, width, false, isEraser);
     });
 
     connection.on("ClearCanvas", () => {
@@ -108,10 +105,10 @@ export default function App() {
     ctx.lineCap = "round";
     ctxRef.current = ctx;
     if (pendingCanvasRef.current) {
-    const img = new Image();
-    img.src = pendingCanvasRef.current;
-    img.onload = () => ctx.drawImage(img, 0, 0);
-}
+      const img = new Image();
+      img.src = pendingCanvasRef.current;
+      img.onload = () => ctx.drawImage(img, 0, 0);
+    }
   }, [isConnected]);
 
   const getPos = (e) => {
@@ -142,6 +139,7 @@ export default function App() {
       color,
       width,
       true,
+      eraser
     );
     lastPosRef.current = newPos;
   };
@@ -167,24 +165,24 @@ export default function App() {
     link.click();
   };
 
-  const drawLine = (x0, y0, x1, y1, color, width, send) => {
+  const drawLine = (x0, y0, x1, y1, color, width, send, eraser) => {
     const ctx = ctxRef.current;
     if (!ctx) return;
-    eraser ? (ctx.strokeStyle = "#ffffff") : (ctx.strokeStyle = color);
+    if (eraser) {
+      ctx.globalCompositeOperation = "destination-out";
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+    }
+    ctx.strokeStyle = color;
     ctx.lineWidth = width;
     ctx.beginPath();
     ctx.moveTo(x0, y0);
     ctx.lineTo(x1, y1);
     ctx.stroke();
     ctx.closePath();
-
-    if (send && connectionRef.current && eraser) {
+    if (send && connectionRef.current) {
       connectionRef.current
-        .invoke("EraseDrawing", x0, y0, x1, y1, "#ffffff", width)
-        .catch((err) => console.error(err));
-    } else if (send && connectionRef.current) {
-      connectionRef.current
-        .invoke("SendDraw", x0, y0, x1, y1, color, width)
+        .invoke("SendDraw", x0, y0, x1, y1, color, width, eraser)
         .catch((err) => console.error(err));
     }
   };
