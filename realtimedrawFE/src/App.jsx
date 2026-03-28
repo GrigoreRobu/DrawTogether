@@ -8,11 +8,11 @@ export default function App() {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
   const drawingRef = useRef(false);
+  const strokeChangedRef = useRef(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
   const connectionRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const pendingCanvasRef = useRef(null);
-  const snapshotsRef = useRef([]);
 
   const [status, setStatus] = useState("Connecting...");
   const [usersCount, setUsersCount] = useState(0);
@@ -48,8 +48,26 @@ export default function App() {
     connection.on("UserLeft", (count) => {
       setUsersCount(count);
     });
-    connection.on("RecieveCanvas", (imageData) => {
-      pendingCanvasRef.current = imageData;
+    connection.on("ReceiveCanvas", (imageData) => {
+      console.log("ReceiveCanvas primit", imageData?.length);
+       console.log("handler intrat, ctxRef:", !!ctxRef.current);
+      if (ctxRef.current) {
+        const img = new Image();
+        if (!imageData) {
+          clearCanvas();
+          console.log("clearCanvas direct");
+        } else {
+            const img = new Image();
+            img.src = imageData;
+            img.onload = () => {
+                console.log("img.onload fired");
+                clearCanvas();
+                ctxRef.current.drawImage(img, 0, 0);
+            };
+        }
+    } else {
+        pendingCanvasRef.current = imageData;
+    }
     });
 
     connection.on("RoomFull", () => {
@@ -59,7 +77,7 @@ export default function App() {
     connection.on("ReceiveDraw", (x0, y0, x1, y1, color, width) => {
       drawLine(x0, y0, x1, y1, color, width, false);
     });
-    connection.on("RecieveErase", (x0, y0, x1, y1, color, width) => {
+    connection.on("ReceiveErase", (x0, y0, x1, y1, color, width) => {
       drawLine(x0, y0, x1, y1, "#ffffff", width, false);
     });
 
@@ -89,15 +107,11 @@ export default function App() {
     const ctx = canvas.getContext("2d");
     ctx.lineCap = "round";
     ctxRef.current = ctx;
-    if (pendingCanvasRef.current != null) {
-      const img = new Image();
-      img.src = pendingCanvasRef.current;
-      img.onload = () => ctx.drawImage(img, 0, 0);
-    }
-      if (snapshotsRef.current.length === 0) {
-      const initialState = canvasRef.current.toDataURL("image/png");
-      snapshotsRef.current.push(initialState);
-    }
+    if (pendingCanvasRef.current) {
+    const img = new Image();
+    img.src = pendingCanvasRef.current;
+    img.onload = () => ctx.drawImage(img, 0, 0);
+}
   }, [isConnected]);
 
   const getPos = (e) => {
@@ -112,12 +126,13 @@ export default function App() {
   const handleMouseDown = (e) => {
     if (status !== "Connected") return;
     drawingRef.current = true;
+    strokeChangedRef.current = false;
     lastPosRef.current = getPos(e);
-    snapshotsRef.current.push(canvasRef.current.toDataURL("image/png"));
   };
 
   const handleMouseMove = (e) => {
     if (!drawingRef.current) return;
+    strokeChangedRef.current = true;
     const newPos = getPos(e);
     drawLine(
       lastPosRef.current.x,
@@ -132,24 +147,19 @@ export default function App() {
   };
 
   const handleMouseUp = () => {
+    if (!drawingRef.current) return;
+    drawingRef.current = false;
+    if (!strokeChangedRef.current || !connectionRef.current) return;
+
     connectionRef.current
       .invoke("SaveCanvas", canvasRef.current.toDataURL("image/png"))
       .catch(console.error);
-
-    drawingRef.current = false;
   };
 
-  const handleUndo = () =>{
-    clearCanvas();
-    const ctx = ctxRef.current;
-    if (snapshotsRef.current.length>1) {
-      const img = new Image();
-      snapshotsRef.current.pop();
-      img.src = snapshotsRef.current.at(-1);
-      clearCanvas();
-      img.onload = () => ctx.drawImage(img, 0, 0);
-    }
-  }
+  const handleUndo = () => {
+    if (!connectionRef.current) return;
+    connectionRef.current.invoke("RequestUndo").catch(console.error);
+  };
   const drawLine = (x0, y0, x1, y1, color, width, send) => {
     const ctx = ctxRef.current;
     if (!ctx) return;
