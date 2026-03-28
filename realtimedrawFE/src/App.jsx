@@ -160,6 +160,13 @@ export default function App() {
     if (!connectionRef.current) return;
     connectionRef.current.invoke("RequestUndo").catch(console.error);
   };
+  const handleDownload = () => {
+    const link = document.createElement("a");
+    link.download = "drawing.png";
+    link.href = canvasRef.current.toDataURL("image/png");
+    link.click();
+  };
+
   const drawLine = (x0, y0, x1, y1, color, width, send) => {
     const ctx = ctxRef.current;
     if (!ctx) return;
@@ -234,6 +241,7 @@ export default function App() {
             </button>
             <button onClick={handleClearClick}>Clear</button>
             <button onClick={handleUndo}>Undo</button>
+            <button onClick={handleDownload}>Download</button>
           </div>
 
           <canvas
