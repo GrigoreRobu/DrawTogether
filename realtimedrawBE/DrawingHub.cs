@@ -6,7 +6,7 @@ public class DrawingHub : Hub
     public static ConcurrentDictionary<string, bool> ConnectedUsers = new();
     public static string image64 = string.Empty;
     private const int MaxUsers = 4;
-
+    private const int maxHistory = 30;
     private static readonly List<string> history = new List<string> { string.Empty };
     private static readonly object _historyLock = new object();
 
@@ -67,12 +67,17 @@ public class DrawingHub : Hub
             }
 
             history.Add(ImageData);
-            if (history.Count > 6)
+            if (history.Count > maxHistory + 1)
             {
                 history.RemoveAt(0);
             }
             image64 = ImageData;
         }
+    }
+
+    public async Task SendMessage(string username, string message)
+    {
+        await Clients.All.SendAsync("ReceiveMessage", username, message);
     }
     public async Task RequestUndo()
     {

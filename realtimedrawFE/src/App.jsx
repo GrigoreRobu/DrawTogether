@@ -14,13 +14,15 @@ export default function App() {
   const [isConnected, setIsConnected] = useState(false);
   const pendingCanvasRef = useRef(null);
   const isConnectingRef = useRef(false);
+  const [username, setUsername] = useState("");
 
   const [status, setStatus] = useState("Connecting...");
   const [usersCount, setUsersCount] = useState(0);
   const [color, setColor] = useState("#000000");
   const [width, setWidth] = useState(3);
   const [eraser, setEraser] = useState(false);
-
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState("");
 
   useEffect(() => {
     const fetchCount = async () => {
@@ -79,6 +81,9 @@ export default function App() {
 
     connection.on("ClearCanvas", () => {
       clearCanvas();
+    });
+    connection.on("ReceiveMessage", (sender, message) => {
+      setMessages((messages) => [...messages, { sender, message }]);
     });
     connectionRef.current = connection;
     connection
@@ -183,7 +188,12 @@ export default function App() {
     link.href = canvasRef.current.toDataURL("image/png");
     link.click();
   };
-
+  const handleSendMessage = () => {
+    connectionRef.current
+      .invoke("SendMessage", username, messageInput)
+      .catch(console.error);
+    setMessageInput("");
+  };
   const drawLine = (x0, y0, x1, y1, color, width, send, eraser) => {
     const ctx = ctxRef.current;
     if (!ctx) return;
@@ -259,12 +269,15 @@ export default function App() {
 
           <canvas
             ref={canvasRef}
-            style={{ border: "1px solid #ccc", cursor: "crosshair" , touchAction: "none"}}
+            style={{
+              border: "1px solid #ccc",
+              cursor: "crosshair",
+              touchAction: "none",
+            }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-
             onTouchStart={(e) => {
               e.preventDefault();
               handleMouseDown(e);
@@ -278,10 +291,39 @@ export default function App() {
               handleMouseUp(e);
             }}
           />
+          <div
+            className="chat-history"
+            style={{
+              height: "150px",
+              overflowY: "scroll",
+              border: "1px solid #ccc",
+              padding: "10px",
+              marginTop: "10px",
+            }}
+          >
+            {messages.map((msg, index) => (
+              <div key={index}>
+                <strong>{msg.sender}: </strong>
+                <span>{msg.message}</span>
+              </div>
+            ))}
+            <input type="text"
+             value={messageInput}
+             onChange={(e) => setMessageInput(e.target.value)}
+             placeholder="Enter your message"
+            ></input>
+            <button onClick={handleSendMessage}>Send</button>
+          </div>
         </div>
       ) : (
         <div>
           <h1>Wanna connect? {usersCount} user(s) online.</h1>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your username"
+          />
           <button variant="text" onClick={(e) => handleConnect()}>
             Connect
           </button>
