@@ -13,12 +13,14 @@ export default function App() {
   const connectionRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const pendingCanvasRef = useRef(null);
+  const isConnectingRef = useRef(false);
 
   const [status, setStatus] = useState("Connecting...");
   const [usersCount, setUsersCount] = useState(0);
   const [color, setColor] = useState("#000000");
   const [width, setWidth] = useState(3);
   const [eraser, setEraser] = useState(false);
+
 
   useEffect(() => {
     const fetchCount = async () => {
@@ -31,6 +33,8 @@ export default function App() {
   }, []);
 
   const handleConnect = async () => {
+    if (isConnectingRef.current) return;
+    isConnectingRef.current = true;
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL, { withCredentials: true })
       .withAutomaticReconnect()
@@ -49,18 +53,13 @@ export default function App() {
       setUsersCount(count);
     });
     connection.on("ReceiveCanvas", (imageData) => {
-      console.log("ReceiveCanvas primit", imageData?.length);
-      console.log("handler intrat, ctxRef:", !!ctxRef.current);
       if (ctxRef.current) {
-        const img = new Image();
         if (!imageData) {
           clearCanvas();
-          console.log("clearCanvas direct");
         } else {
           const img = new Image();
           img.src = imageData;
           img.onload = () => {
-            console.log("img.onload fired");
             clearCanvas();
             ctxRef.current.drawImage(img, 0, 0);
           };
@@ -81,7 +80,7 @@ export default function App() {
     connection.on("ClearCanvas", () => {
       clearCanvas();
     });
-
+    connectionRef.current = connection;
     connection
       .start()
       .then(() => {
@@ -92,15 +91,19 @@ export default function App() {
         console.error(err);
         setStatus("Error connecting");
       });
-
-    connectionRef.current = connection;
   };
 
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
-    canvas.width = Math.min(window.innerWidth, 1200);
-    canvas.height = Math.min(window.innerHeight * 0.8, 800);
+    canvas.width = 1200;
+    canvas.height = 800;
+
+    if (window.innerWidth < 900) {
+      const scale = window.innerWidth / 1200;
+      canvas.style.transform = `scale(${scale})`;
+      canvas.style.transformOrigin = "top left";
+    }
     const ctx = canvas.getContext("2d");
     ctx.lineCap = "round";
     ctxRef.current = ctx;
@@ -109,15 +112,31 @@ export default function App() {
       img.src = pendingCanvasRef.current;
       img.onload = () => ctx.drawImage(img, 0, 0);
     }
+    const prevent = (e) => e.preventDefault();
+
+    canvas.addEventListener("touchstart", prevent, { passive: false });
+    canvas.addEventListener("touchmove", prevent, { passive: false });
+    canvas.addEventListener("touchend", prevent, { passive: false });
+
+    return () => {
+      canvas.removeEventListener("touchstart", prevent);
+      canvas.removeEventListener("touchmove", prevent);
+      canvas.removeEventListener("touchend", prevent);
+    };
   }, [isConnected]);
 
   const getPos = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    if (e.touches) {
-      const t = e.touches[0];
-      return { x: t.clientX - rect.left, y: t.clientY - rect.top };
-    }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
   };
 
   const handleMouseDown = (e) => {
@@ -139,7 +158,7 @@ export default function App() {
       color,
       width,
       true,
-      eraser
+      eraser,
     );
     lastPosRef.current = newPos;
   };
@@ -202,13 +221,9 @@ export default function App() {
   };
 
   return (
-    <div>
+    <div id="container">
       {isConnected ? (
-        <div>
-          <h1>Realtime Drawing</h1>
-          <p>Status: {status}</p>
-          <p>Users connected: {usersCount}</p>
-
+        <div id="drawing-area">
           <div className="toolbar">
             <label>
               Color:{" "}
@@ -229,7 +244,6 @@ export default function App() {
               />
               <span style={{ marginLeft: "0.5rem" }}>{width}</span>
             </label>
-
             <button
               onClick={(e) => {
                 setEraser(!eraser);
@@ -240,15 +254,17 @@ export default function App() {
             <button onClick={handleClearClick}>Clear</button>
             <button onClick={handleUndo}>Undo</button>
             <button onClick={handleDownload}>Download</button>
+            <t>Users connected: {usersCount}</t>
           </div>
 
           <canvas
             ref={canvasRef}
-            style={{ border: "1px solid #ccc", cursor: "crosshair" }}
+            style={{ border: "1px solid #ccc", cursor: "crosshair" , touchAction: "none"}}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+
             onTouchStart={(e) => {
               e.preventDefault();
               handleMouseDown(e);
