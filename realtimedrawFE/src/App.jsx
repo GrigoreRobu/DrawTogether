@@ -264,7 +264,7 @@ export default function App() {
             <button onClick={handleClearClick}>Clear</button>
             <button onClick={handleUndo}>Undo</button>
             <button onClick={handleDownload}>Download</button>
-            <t>Users connected: {usersCount}</t>
+            <span>Users connected: {usersCount}</span>
           </div>
 
           <canvas
@@ -307,10 +307,16 @@ export default function App() {
                 <span>{msg.message}</span>
               </div>
             ))}
-            <input type="text"
-             value={messageInput}
-             onChange={(e) => setMessageInput(e.target.value)}
-             placeholder="Enter your message"
+            <input
+              type="text"
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSendMessage();
+                }
+              }}
+              placeholder="Enter your message"
             ></input>
             <button onClick={handleSendMessage}>Send</button>
           </div>
@@ -322,6 +328,9 @@ export default function App() {
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleConnect();
+            }}
             placeholder="Enter your username"
           />
           <button variant="text" onClick={(e) => handleConnect()}>
