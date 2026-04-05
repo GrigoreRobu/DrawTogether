@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 [ApiController]
-[Route("userCount")]
+[Route("api/userCount")]
 public class UserCountController : ControllerBase
 {
     [HttpGet]

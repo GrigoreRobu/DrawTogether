@@ -3,6 +3,7 @@ import * as signalR from "@microsoft/signalr";
 
 const HUB_URL = import.meta.env.VITE_HUB_URL;
 const USER_URL = import.meta.env.VITE_USER_API_URL;
+const ROOM_URL = import.meta.env.VITE_ROOM_API_URL;
 
 export default function App() {
   const canvasRef = useRef(null);
@@ -11,10 +12,9 @@ export default function App() {
   const strokeChangedRef = useRef(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
   const connectionRef = useRef(null);
-  const [isConnected, setIsConnected] = useState(false);
   const pendingCanvasRef = useRef(null);
   const isConnectingRef = useRef(false);
-  const [username, setUsername] = useState("");
+  const initialImgRef = useRef(null);
 
   const [status, setStatus] = useState("Connecting...");
   const [usersCount, setUsersCount] = useState(0);
@@ -23,6 +23,11 @@ export default function App() {
   const [eraser, setEraser] = useState(false);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
+  const [username, setUsername] = useState("");
+  const [isConnected, setIsConnected] = useState(false);
+  const [roomId, setRoomId] = useState("");
+  const [insertedUsername, setInsUsername] = useState(false);
+  const [insertedRoomId, setInsRoomId] = useState(false);
 
   useEffect(() => {
     const fetchCount = async () => {
@@ -33,7 +38,22 @@ export default function App() {
 
     fetchCount();
   }, []);
-
+  const handleRoomCreation = async () => {
+    const response = await fetch(`${ROOM_URL}/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(roomId),
+    });
+    if (response.ok) {
+      setStatus("Room created!");
+      handleConnect();
+    } else {
+      const data = await response.json();
+      setStatus(data.message);
+    }
+  };
   const handleConnect = async () => {
     if (isConnectingRef.current) return;
     isConnectingRef.current = true;
@@ -85,12 +105,19 @@ export default function App() {
     connection.on("ReceiveMessage", (sender, message) => {
       setMessages((messages) => [...messages, { sender, message }]);
     });
+    connection.on("RoomJoined", (initialImgRef) => {
+      setStatus("Connected");
+      setIsConnected(true);
+      pendingCanvasRef.current = initialImgRef;
+    });
+    connection.on("JoinRoomError", (error) => {
+      setStatus(error);
+    });
     connectionRef.current = connection;
     connection
       .start()
       .then(() => {
-        setStatus("Connected");
-        setIsConnected(true);
+        connection.invoke("JoinRoom", roomId, username);
       })
       .catch((err) => {
         console.error(err);
@@ -323,19 +350,66 @@ export default function App() {
         </div>
       ) : (
         <div>
-          <h1>Wanna connect? {usersCount} user(s) online.</h1>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleConnect();
-            }}
-            placeholder="Enter your username"
-          />
-          <button variant="text" onClick={(e) => handleConnect()}>
-            Connect
-          </button>
+          <div>
+            <h1>Wanna connect? {usersCount} user(s) online.</h1>
+            <h1>{status}</h1>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setInsUsername(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && insertedRoomId) handleConnect();
+              }}
+              placeholder="Enter your username"
+            />
+            <input
+              type="text"
+              value={roomId}
+              onChange={(e) => {
+                setRoomId(e.target.value);
+                setInsRoomId(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && insertedUsername) handleConnect();
+              }}
+              placeholder="Enter room id"
+            />
+            <button
+              variant="text"
+              onClick={(e) => {
+                if (insertedRoomId && insertedUsername) {
+                  handleConnect();
+                }
+              }}
+            >
+              Connect
+            </button>
+          </div>
+          <div>
+            <h1>Want to create a room?</h1>
+            <input
+              type="text"
+              value={roomId}
+              onChange={(e) => {
+                setRoomId(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRoomCreation();
+              }}
+              placeholder="Enter room id"
+            />
+            <button
+              variant="text"
+              onClick={(e) => {
+                  handleRoomCreation();
+              }}
+            >
+              Create
+            </button>
+          </div>
         </div>
       )}
     </div>

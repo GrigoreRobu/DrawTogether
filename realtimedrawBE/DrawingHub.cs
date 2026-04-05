@@ -1,37 +1,72 @@
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using Microsoft.AspNetCore.SignalR;
 
+public class RoomState
+{
+    public string image64 { get; set; } = string.Empty;
+    public List<string> History { get; set; } = new List<string>();
+    public object HistoryLock { get; set; } = new object();
+}
 public class DrawingHub : Hub
 {
     public static ConcurrentDictionary<string, bool> ConnectedUsers = new();
-    public static string image64 = string.Empty;
+    public static ConcurrentDictionary<string, RoomState> Rooms = new();
+
+    public static ConcurrentDictionary<string, string> Connection = new();
     private const int MaxUsers = 4;
     private const int maxHistory = 30;
     private static readonly List<string> history = new List<string> { string.Empty };
     private static readonly object _historyLock = new object();
+    public string[] roomz = { "room1", "room2", "room3" };
+
 
 
     public override async Task OnConnectedAsync()
     {
-        if (ConnectedUsers.Count >= MaxUsers)
-        {
-            await Clients.Caller.SendAsync("RoomFull");
-            Context.Abort();
-            return;
-        }
-
         ConnectedUsers[Context.ConnectionId] = true;
         await Clients.Caller.SendAsync("Joined", ConnectedUsers.Count);
         await Clients.Others.SendAsync("UserJoined", ConnectedUsers.Count);
-        await Clients.Caller.SendAsync("ReceiveCanvas", image64);
 
         await base.OnConnectedAsync();
     }
+    public async Task JoinRoom(string roomCode, string username)
+    {
+        bool isPrefab = roomz.Contains(roomCode);
+        bool isExisting = Rooms.ContainsKey(roomCode);
 
+        if (!isPrefab && !isExisting)
+        {
+            await Clients.Caller.SendAsync("JoinRoomError", "Room does not exist.");
+            return;
+        }
+        if (!Rooms.ContainsKey(roomCode))
+        {
+            Rooms.TryAdd(roomCode, new RoomState());
+        }
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+        Connection[Context.ConnectionId] = roomCode;
+
+        string currentCanvas = Rooms[roomCode].image64;
+        await Clients.Caller.SendAsync("RoomJoined", currentCanvas);
+        await Clients.Others.SendAsync("UserJoined", username);
+
+
+    }
     public override async Task OnDisconnectedAsync(Exception? ex)
     {
+        if (Connection.TryRemove(Context.ConnectionId, out string roomCode))
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomCode);
+            int usersLeft = Connection.Values.Count(c => c == roomCode);
+            await Clients.Group(roomCode).SendAsync("UserLeft", usersLeft);
+            if (usersLeft <= 0)
+            {
+                Rooms.TryRemove(roomCode, out _);
+            }
+        }
         ConnectedUsers.TryRemove(Context.ConnectionId, out _);
-        await Clients.All.SendAsync("UserLeft", ConnectedUsers.Count);
         await base.OnDisconnectedAsync(ex);
     }
 
@@ -41,63 +76,79 @@ public class DrawingHub : Hub
     }
     public async Task SendDraw(float x0, float y0, float x1, float y1, string color, float width, bool isEraser)
     {
-
-        await Clients.Others.SendAsync("ReceiveDraw", x0, y0, x1, y1, color, width, isEraser);
+        if (Connection.TryGetValue(Context.ConnectionId, out string roomCode))
+        {
+            await Clients.OthersInGroup(roomCode).SendAsync("ReceiveDraw", x0, y0, x1, y1, color, width, isEraser);
+        }
 
     }
 
     public async Task ClearCanvas()
     {
-        lock (_historyLock)
+        if (Connection.TryGetValue(Context.ConnectionId, out string roomCode))
         {
-            history.Clear();
-            history.Add(string.Empty);
-            image64 = string.Empty;
+            lock (Rooms[roomCode].HistoryLock)
+            {
+                Rooms[roomCode].History.Clear();
+                Rooms[roomCode].History.Add(string.Empty);
+                Rooms[roomCode].image64 = string.Empty;
+            }
+            await Clients.Group(roomCode).SendAsync("ClearCanvas");
         }
-        await Clients.All.SendAsync("ClearCanvas");
     }
     public async Task SaveCanvas(string ImageData)
     {
-        lock (_historyLock)
+        if (Connection.TryGetValue(Context.ConnectionId, out string roomCode))
         {
-            if (history.Count > 0 && history[history.Count - 1] == ImageData)
+            var roomState = Rooms[roomCode];
+            lock (roomState.HistoryLock)
             {
-                image64 = ImageData;
-                return;
-            }
+                if (roomState.History.Count > 0 && roomState.History[roomState.History.Count - 1] == ImageData)
+                {
+                    roomState.image64 = ImageData;
+                    return;
+                }
 
-            history.Add(ImageData);
-            if (history.Count > maxHistory + 1)
-            {
-                history.RemoveAt(0);
+                roomState.History.Add(ImageData);
+                if (roomState.History.Count > maxHistory + 1)
+                {
+                    roomState.History.RemoveAt(0);
+                }
+                roomState.image64 = ImageData;
             }
-            image64 = ImageData;
         }
     }
 
     public async Task SendMessage(string username, string message)
     {
-        await Clients.All.SendAsync("ReceiveMessage", username, message);
+        if (Connection.TryGetValue(Context.ConnectionId, out string roomCode))
+        {
+            await Clients.Group(roomCode).SendAsync("ReceiveMessage", username, message);
+        }
     }
     public async Task RequestUndo()
     {
-        string snapshotToSend = string.Empty;
-        lock (_historyLock)
+        if (Connection.TryGetValue(Context.ConnectionId, out string roomCode))
         {
-            if (history.Count > 1)
+            var roomState = Rooms[roomCode];
+            string snapshotToSend = string.Empty;
+            lock (roomState.HistoryLock)
             {
-                history.RemoveAt(history.Count - 1);
-                snapshotToSend = history[history.Count - 1];
-                image64 = snapshotToSend;
+                if (roomState.History.Count > 1)
+                {
+                    roomState.History.RemoveAt(roomState.History.Count - 1);
+                    snapshotToSend = roomState.History[roomState.History.Count - 1];
+                    roomState.image64 = snapshotToSend;
+                }
+                else if (roomState.History.Count == 1)
+                {
+                    roomState.image64 = roomState.History[0];
+                    snapshotToSend = roomState.image64;
+                }
+                else { roomState.image64 = snapshotToSend; }
             }
-            else if (history.Count == 1)
-            {
-                image64 = history[0];
-                snapshotToSend = image64;
-            }
-            else { image64 = snapshotToSend; }
+            await Clients.Group(roomCode).SendAsync("ReceiveCanvas", snapshotToSend);
         }
-        await Clients.All.SendAsync("ReceiveCanvas", snapshotToSend);
 
     }
 }
