@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
-
-const HUB_URL = import.meta.env.VITE_HUB_URL;
-const USER_URL = import.meta.env.VITE_USER_API_URL;
-const ROOM_URL = import.meta.env.VITE_ROOM_API_URL;
+import { HUB_URL, USER_URL, ROOM_URL } from "./constants";
+import Lobby from "./components/lobby";
+import Toolbar from "./components/toolbar";
+import Chat from "./components/chat";
 
 export default function App() {
   const canvasRef = useRef(null);
@@ -14,7 +14,6 @@ export default function App() {
   const connectionRef = useRef(null);
   const pendingCanvasRef = useRef(null);
   const isConnectingRef = useRef(false);
-  const initialImgRef = useRef(null);
 
   const [status, setStatus] = useState("Connecting...");
   const [usersCount, setUsersCount] = useState(0);
@@ -122,6 +121,7 @@ export default function App() {
       .catch((err) => {
         console.error(err);
         setStatus("Error connecting");
+        isConnectingRef.current=false;
       });
   };
 
@@ -261,156 +261,42 @@ export default function App() {
     <div id="container">
       {isConnected ? (
         <div id="drawing-area">
-          <div className="toolbar">
-            <label>
-              Color:{" "}
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-              />
-            </label>
-            <label>
-              Width:{" "}
-              <input
-                type="range"
-                min="1"
-                max="15"
-                value={width}
-                onChange={(e) => setWidth(Number(e.target.value))}
-              />
-              <span style={{ marginLeft: "0.5rem" }}>{width}</span>
-            </label>
-            <button
-              onClick={(e) => {
-                setEraser(!eraser);
-              }}
-            >
-              Eraser
-            </button>
-            <button onClick={handleClearClick}>Clear</button>
-            <button onClick={handleUndo}>Undo</button>
-            <button onClick={handleDownload}>Download</button>
-            <span>Users connected: {usersCount}</span>
-          </div>
+          <Toolbar
+            color={color} setColor={setColor}
+            width={width} setWidth={setWidth}
+            eraser={eraser} setEraser={setEraser}
+            handleClearClick={handleClearClick}
+            handleUndo={handleUndo}
+            handleDownload={handleDownload}
+            usersCount={usersCount}
+          />
 
           <canvas
             ref={canvasRef}
-            style={{
-              border: "1px solid #ccc",
-              cursor: "crosshair",
-              touchAction: "none",
-            }}
+            style={{ border: "1px solid #ccc", cursor: "crosshair", touchAction: "none" }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleMouseDown(e);
-            }}
-            onTouchMove={(e) => {
-              e.preventDefault();
-              handleMouseMove(e);
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              handleMouseUp(e);
-            }}
+            onTouchStart={(e) => { e.preventDefault(); handleMouseDown(e); }}
+            onTouchMove={(e) => { e.preventDefault(); handleMouseMove(e); }}
+            onTouchEnd={(e) => { e.preventDefault(); handleMouseUp(e); }}
           />
-          <div
-            className="chat-history"
-            style={{
-              height: "150px",
-              overflowY: "scroll",
-              border: "1px solid #ccc",
-              padding: "10px",
-              marginTop: "10px",
-            }}
-          >
-            {messages.map((msg, index) => (
-              <div key={index}>
-                <strong>{msg.sender}: </strong>
-                <span>{msg.message}</span>
-              </div>
-            ))}
-            <input
-              type="text"
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSendMessage();
-                }
-              }}
-              placeholder="Enter your message"
-            ></input>
-            <button onClick={handleSendMessage}>Send</button>
-          </div>
+
+          <Chat
+            messages={messages}
+            messageInput={messageInput}
+            setMessageInput={setMessageInput}
+            handleSendMessage={handleSendMessage}
+          />
         </div>
       ) : (
-        <div>
-          <div>
-            <h1>Wanna connect? {usersCount} user(s) online.</h1>
-            <h1>{status}</h1>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => {
-                setUsername(e.target.value);
-                setInsUsername(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && insertedRoomId) handleConnect();
-              }}
-              placeholder="Enter your username"
-            />
-            <input
-              type="text"
-              value={roomId}
-              onChange={(e) => {
-                setRoomId(e.target.value);
-                setInsRoomId(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && insertedUsername) handleConnect();
-              }}
-              placeholder="Enter room id"
-            />
-            <button
-              variant="text"
-              onClick={(e) => {
-                if (insertedRoomId && insertedUsername) {
-                  handleConnect();
-                }
-              }}
-            >
-              Connect
-            </button>
-          </div>
-          <div>
-            <h1>Want to create a room?</h1>
-            <input
-              type="text"
-              value={roomId}
-              onChange={(e) => {
-                setRoomId(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleRoomCreation();
-              }}
-              placeholder="Enter room id"
-            />
-            <button
-              variant="text"
-              onClick={(e) => {
-                  handleRoomCreation();
-              }}
-            >
-              Create
-            </button>
-          </div>
-        </div>
+        <Lobby
+          usersCount={usersCount} status={status}
+          username={username} setUsername={setUsername} setInsUsername={setInsUsername} insertedUsername={insertedUsername}
+          roomId={roomId} setRoomId={setRoomId} setInsRoomId={setInsRoomId} insertedRoomId={insertedRoomId}
+          handleConnect={handleConnect} handleRoomCreation={handleRoomCreation}
+        />
       )}
     </div>
   );
