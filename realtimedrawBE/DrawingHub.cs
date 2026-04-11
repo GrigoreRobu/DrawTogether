@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 public class RoomState
 {
     public string image64 { get; set; } = string.Empty;
-    public List<string> History { get; set; } = new List<string>();
+    public List<string> History { get; set; } = new List<string> { string.Empty };
     public object HistoryLock { get; set; } = new object();
 }
 public class DrawingHub : Hub
