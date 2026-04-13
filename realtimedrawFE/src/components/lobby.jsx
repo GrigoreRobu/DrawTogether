@@ -51,20 +51,6 @@ export default function Lobby({
         >
           Connect
         </button>
-      </div>
-      <div>
-        <h1>Want to create a room?</h1>
-        <input
-          type="text"
-          value={roomId}
-          onChange={(e) => {
-            setRoomId(e.target.value);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleRoomCreation();
-          }}
-          placeholder="Enter room id"
-        />
         <button
           variant="text"
           onClick={() => {

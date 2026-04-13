@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
 using Microsoft.AspNetCore.SignalR;
 
 public class RoomState
@@ -14,12 +13,10 @@ public class DrawingHub : Hub
     public static ConcurrentDictionary<string, RoomState> Rooms = new();
 
     public static ConcurrentDictionary<string, string> Connection = new();
-    private const int MaxUsers = 4;
     private const int maxHistory = 30;
     private static readonly List<string> history = new List<string> { string.Empty };
     private static readonly object _historyLock = new object();
-    public string[] roomz = { "room1", "room2", "room3" };
-
+    public static readonly string[] DefaultRooms = { "room1", "room2", "room3" };
 
 
     public override async Task OnConnectedAsync()
@@ -32,10 +29,9 @@ public class DrawingHub : Hub
     }
     public async Task JoinRoom(string roomCode, string username)
     {
-        bool isPrefab = roomz.Contains(roomCode);
         bool isExisting = Rooms.ContainsKey(roomCode);
 
-        if (!isPrefab && !isExisting)
+        if (!isExisting)
         {
             await Clients.Caller.SendAsync("JoinRoomError", "Room does not exist.");
             return;
@@ -61,7 +57,7 @@ public class DrawingHub : Hub
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomCode);
             int usersLeft = Connection.Values.Count(c => c == roomCode);
             await Clients.Group(roomCode).SendAsync("UserLeft", usersLeft);
-            if (usersLeft <= 0)
+            if (usersLeft <= 0 && !DefaultRooms.Contains(roomCode))
             {
                 Rooms.TryRemove(roomCode, out _);
             }

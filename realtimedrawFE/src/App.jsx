@@ -4,6 +4,8 @@ import { HUB_URL, USER_URL, ROOM_URL } from "./constants";
 import Lobby from "./components/lobby";
 import Toolbar from "./components/toolbar";
 import Chat from "./components/chat";
+import Poller from "./something/poller.jsx";
+import Rooms from "./components/rooms.jsx";
 
 export default function App() {
   const canvasRef = useRef(null);
@@ -51,11 +53,22 @@ export default function App() {
     } else {
       const data = await response.json();
       setStatus(data.message);
+      isConnectingRef.current = false;
     }
   };
-  const handleConnect = async () => {
+  const handleConnect = async (roomOverride, usernameOverride) => {
     if (isConnectingRef.current) return;
     isConnectingRef.current = true;
+
+    const roomToJoin = roomOverride ?? roomId;
+    const usernameToJoin = usernameOverride ?? username;
+
+    if (!roomToJoin || !usernameToJoin) {
+      setStatus("Enter username and room id");
+      isConnectingRef.current = false;
+      return;
+    }
+
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL, { withCredentials: true })
       .withAutomaticReconnect()
@@ -111,17 +124,18 @@ export default function App() {
     });
     connection.on("JoinRoomError", (error) => {
       setStatus(error);
+      isConnectingRef.current = false;
     });
     connectionRef.current = connection;
     connection
       .start()
       .then(() => {
-        connection.invoke("JoinRoom", roomId, username);
+        connection.invoke("JoinRoom", roomToJoin, usernameToJoin);
       })
       .catch((err) => {
         console.error(err);
         setStatus("Error connecting");
-        isConnectingRef.current=false;
+        isConnectingRef.current = false;
       });
   };
 
@@ -256,31 +270,46 @@ export default function App() {
       connectionRef.current.invoke("ClearCanvas").catch(console.error);
     }
   };
-
   return (
     <div id="container">
+      <Poller></Poller>
       {isConnected ? (
         <div id="drawing-area">
           <Toolbar
-            color={color} setColor={setColor}
-            width={width} setWidth={setWidth}
-            eraser={eraser} setEraser={setEraser}
+            color={color}
+            setColor={setColor}
+            width={width}
+            setWidth={setWidth}
+            eraser={eraser}
+            setEraser={setEraser}
             handleClearClick={handleClearClick}
             handleUndo={handleUndo}
             handleDownload={handleDownload}
-            usersCount={usersCount}
           />
 
           <canvas
             ref={canvasRef}
-            style={{ border: "1px solid #ccc", cursor: "crosshair", touchAction: "none" }}
+            style={{
+              border: "1px solid #ccc",
+              cursor: "crosshair",
+              touchAction: "none",
+            }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            onTouchStart={(e) => { e.preventDefault(); handleMouseDown(e); }}
-            onTouchMove={(e) => { e.preventDefault(); handleMouseMove(e); }}
-            onTouchEnd={(e) => { e.preventDefault(); handleMouseUp(e); }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleMouseDown(e);
+            }}
+            onTouchMove={(e) => {
+              e.preventDefault();
+              handleMouseMove(e);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              handleMouseUp(e);
+            }}
           />
 
           <Chat
@@ -291,12 +320,23 @@ export default function App() {
           />
         </div>
       ) : (
-        <Lobby
-          usersCount={usersCount} status={status}
-          username={username} setUsername={setUsername} setInsUsername={setInsUsername} insertedUsername={insertedUsername}
-          roomId={roomId} setRoomId={setRoomId} setInsRoomId={setInsRoomId} insertedRoomId={insertedRoomId}
-          handleConnect={handleConnect} handleRoomCreation={handleRoomCreation}
-        />
+        <div>
+          <Lobby
+            usersCount={usersCount}
+            status={status}
+            username={username}
+            setUsername={setUsername}
+            setInsUsername={setInsUsername}
+            insertedUsername={insertedUsername}
+            roomId={roomId}
+            setRoomId={setRoomId}
+            setInsRoomId={setInsRoomId}
+            insertedRoomId={insertedRoomId}
+            handleConnect={handleConnect}
+            handleRoomCreation={handleRoomCreation}
+          />
+          <Rooms handleConnect={handleConnect} username={username} />
+        </div>
       )}
     </div>
   );

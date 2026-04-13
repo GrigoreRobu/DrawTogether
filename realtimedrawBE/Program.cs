@@ -29,5 +29,10 @@ app.MapControllers();
 
 app.MapHub<DrawingHub>("/drawingHub");
 
+foreach (var room in DrawingHub.DefaultRooms)
+{
+    DrawingHub.Rooms.TryAdd(room, new RoomState());
+}
+
 
 app.Run();

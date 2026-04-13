@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RealtimeDraw")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4f2601dd46b0e0ac98ce385ca629f629cf870e19")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0d0424a3279842062c13b9cee3c79afe2b8c1524")]
 [assembly: System.Reflection.AssemblyProductAttribute("RealtimeDraw")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RealtimeDraw")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
