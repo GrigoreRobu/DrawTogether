@@ -11,26 +11,29 @@ export default function Toolbar({
 }) {
   return (
     <div className="toolbar">
-      <label>
+      <label className="tool-group">
         Color:{" "}
         <input
+          className="tool-color"
           type="color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
         />
       </label>
-      <label>
+      <label className="tool-group tool-range-wrap">
         Width:{" "}
         <input
+          className="tool-range"
           type="range"
           min="1"
           max="15"
           value={width}
           onChange={(e) => setWidth(Number(e.target.value))}
         />
-        <span style={{ marginLeft: "0.5rem" }}>{width}</span>
+        <span className="tool-width-value">{width}</span>
       </label>
       <button
+        className="icon-btn"
         onClick={() => {
           setEraser(!eraser);
         }}

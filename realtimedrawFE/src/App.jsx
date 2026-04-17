@@ -4,7 +4,6 @@ import { HUB_URL, USER_URL, ROOM_URL } from "./constants";
 import Lobby from "./components/lobby";
 import Toolbar from "./components/toolbar";
 import Chat from "./components/chat";
-import Poller from "./something/poller.jsx";
 import Rooms from "./components/rooms.jsx";
 
 export default function App() {
@@ -145,11 +144,6 @@ export default function App() {
     canvas.width = 1200;
     canvas.height = 800;
 
-    if (window.innerWidth < 900) {
-      const scale = window.innerWidth / 1200;
-      canvas.style.transform = `scale(${scale})`;
-      canvas.style.transformOrigin = "top left";
-    }
     const ctx = canvas.getContext("2d");
     ctx.lineCap = "round";
     ctxRef.current = ctx;
@@ -272,55 +266,59 @@ export default function App() {
   };
   return (
     <div id="container">
-      <Poller></Poller>
       {isConnected ? (
         <div id="drawing-area">
-          <Toolbar
-            color={color}
-            setColor={setColor}
-            width={width}
-            setWidth={setWidth}
-            eraser={eraser}
-            setEraser={setEraser}
-            handleClearClick={handleClearClick}
-            handleUndo={handleUndo}
-            handleDownload={handleDownload}
-          />
+          <div className="board-layout">
+            <Toolbar
+              color={color}
+              setColor={setColor}
+              width={width}
+              setWidth={setWidth}
+              eraser={eraser}
+              setEraser={setEraser}
+              handleClearClick={handleClearClick}
+              handleUndo={handleUndo}
+              handleDownload={handleDownload}
+            />
 
-          <canvas
-            ref={canvasRef}
-            style={{
-              border: "1px solid #ccc",
-              cursor: "crosshair",
-              touchAction: "none",
-            }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              handleMouseDown(e);
-            }}
-            onTouchMove={(e) => {
-              e.preventDefault();
-              handleMouseMove(e);
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              handleMouseUp(e);
-            }}
-          />
+            <div className="board-main">
+              <canvas
+                id="room-canvas"
+                ref={canvasRef}
+                style={{
+                  cursor: "crosshair",
+                  touchAction: "none",
+                }}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleMouseDown(e);
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  handleMouseMove(e);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  handleMouseUp(e);
+                }}
+              >
+              </canvas>
 
-          <Chat
-            messages={messages}
-            messageInput={messageInput}
-            setMessageInput={setMessageInput}
-            handleSendMessage={handleSendMessage}
-          />
+              <Chat
+                messages={messages}
+                messageInput={messageInput}
+                setMessageInput={setMessageInput}
+                handleSendMessage={handleSendMessage}
+              />
+            </div>
+          </div>
         </div>
       ) : (
-        <div>
+        <div className="landing-shell">
           <Lobby
             usersCount={usersCount}
             status={status}

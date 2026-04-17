@@ -34,20 +34,20 @@ export default function Rooms({ handleConnect, username }) {
     };
   }, []);
 
-  if (loading) return <div>Loading rooms…</div>;
-  if (error) return <div style={{ color: "red" }}>Error: {error}</div>;
+  if (loading) return <div className="rooms-state">Loading rooms...</div>;
+  if (error) return <div className="rooms-state rooms-error">Error: {error}</div>;
 
   return (
-    <div>
-      <h3>Rooms</h3>
-      <ul>
+    <div className="rooms-wrap">
+      <h3 className="rooms-title">Open Rooms</h3>
+      <ul className="rooms-list">
         {data.rooms.map((room) => (
-          <li key={room} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <div style={{ minWidth: 160 }}>{room}</div>
-            <div>
+          <li key={room} className="room-item">
+            <div className="room-id">{room}</div>
+            <div className="room-count">
               {data.connections.filter(r => r === room).length}
             </div>
-            <button onClick={() => handleConnect(room, username)}>Join</button>
+            <button className="join-btn" onClick={() => handleConnect(room, username)}>Join</button>
           </li>
         ))}
       </ul>

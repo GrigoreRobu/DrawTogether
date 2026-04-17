@@ -13,11 +13,14 @@ export default function Lobby({
   handleRoomCreation,
 }) {
   return (
-    <div>
-      <div>
-        <h1>Wanna connect? {usersCount} user(s) online.</h1>
-        <h1>{status}</h1>
+    <div className="lobby-wrap">
+      <div className="lobby-card">
+        <h1 className="lobby-title">DrawTogether</h1>
+        <p className="lobby-subtitle">Wanna connect? {usersCount} user(s) online.</p>
+        <p className="status-chip">{status}</p>
+        <div className="lobby-form">
         <input
+          className="lobby-input"
           type="text"
           value={username}
           onChange={(e) => {
@@ -30,6 +33,7 @@ export default function Lobby({
           placeholder="Enter your username"
         />
         <input
+          className="lobby-input"
           type="text"
           value={roomId}
           onChange={(e) => {
@@ -41,6 +45,8 @@ export default function Lobby({
           }}
           placeholder="Enter room id"
         />
+        </div>
+        <div className="lobby-actions">
         <button
           variant="text"
           onClick={() => {
@@ -52,6 +58,7 @@ export default function Lobby({
           Connect
         </button>
         <button
+          className="button-muted"
           variant="text"
           onClick={() => {
             handleRoomCreation();
@@ -59,6 +66,7 @@ export default function Lobby({
         >
           Create
         </button>
+        </div>
       </div>
     </div>
   );

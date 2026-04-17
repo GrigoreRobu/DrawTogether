@@ -5,34 +5,37 @@ export default function Chat({
   handleSendMessage,
 }) {
   return (
-    <div
-      className="chat-history"
-      style={{
-        height: "150px",
-        overflowY: "scroll",
-        border: "1px solid #ccc",
-        padding: "10px",
-        marginTop: "10px",
-      }}
-    >
-      {messages.map((msg, index) => (
-        <div key={index}>
-          <strong>{msg.sender}: </strong>
-          <span>{msg.message}</span>
-        </div>
-      ))}
-      <input
-        type="text"
-        value={messageInput}
-        onChange={(e) => setMessageInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            handleSendMessage();
-          }
-        }}
-        placeholder="Enter your message"
-      ></input>
-      <button onClick={handleSendMessage}>Send</button>
-    </div>
+    <section className="chat-panel" aria-label="Room chat">
+      <div className="chat-header">Chat</div>
+
+      <div className="chat-history">
+        {messages.length === 0 ? (
+          <p className="chat-empty">No messages yet.</p>
+        ) : (
+          messages.map((msg, index) => (
+            <div key={index} className="chat-message">
+              <strong className="chat-sender">{msg.sender}:</strong>
+              <span className="chat-text">{msg.message}</span>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="chat-input-row">
+        <input
+          className="chat-input"
+          type="text"
+          value={messageInput}
+          onChange={(e) => setMessageInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSendMessage();
+            }
+          }}
+          placeholder="Type a message"
+        />
+        <button onClick={handleSendMessage}>Send</button>
+      </div>
+    </section>
   );
 }
