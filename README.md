@@ -6,7 +6,8 @@ A real-time collaborative drawing app where up to 4 users can draw together on a
 
 ## Features
 
-- Real-time canvas synchronization across up to 4 connected users
+- Real-time canvas synchronization across connected users
+- Real-time chat between users of the same room
 - Drawing tools: pen, color picker, adjustable brush size
 - Clear canvas (synced for all users)
 - Download your drawing as an image
