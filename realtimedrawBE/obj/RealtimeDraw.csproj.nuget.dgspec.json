@@ -1,6 +1,7 @@
 {
   "format": 1,
   "restore": {
+<<<<<<< HEAD
     "C:\\Users\\grigr\\Documents\\learnin\\DrawTogether\\realtimedrawBE\\RealtimeDraw.csproj": {}
   },
   "projects": {
@@ -12,6 +13,19 @@
         "projectPath": "C:\\Users\\grigr\\Documents\\learnin\\DrawTogether\\realtimedrawBE\\RealtimeDraw.csproj",
         "packagesPath": "C:\\Users\\grigr\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\grigr\\Documents\\learnin\\DrawTogether\\realtimedrawBE\\obj\\",
+=======
+    "C:\\LEARNIN\\realtimedrawBE\\RealtimeDraw.csproj": {}
+  },
+  "projects": {
+    "C:\\LEARNIN\\realtimedrawBE\\RealtimeDraw.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\LEARNIN\\realtimedrawBE\\RealtimeDraw.csproj",
+        "projectName": "RealtimeDraw",
+        "projectPath": "C:\\LEARNIN\\realtimedrawBE\\RealtimeDraw.csproj",
+        "packagesPath": "C:\\Users\\grigr\\.nuget\\packages\\",
+        "outputPath": "C:\\LEARNIN\\realtimedrawBE\\obj\\",
+>>>>>>> 61d4403 (idk)
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

@@ -1,8 +1,14 @@
 {
   "version": 2,
+<<<<<<< HEAD
   "dgSpecHash": "NWCXnGx75KU=",
   "success": true,
   "projectFilePath": "C:\\Users\\grigr\\Documents\\learnin\\DrawTogether\\realtimedrawBE\\RealtimeDraw.csproj",
+=======
+  "dgSpecHash": "9b5XvgeVZfI=",
+  "success": true,
+  "projectFilePath": "C:\\LEARNIN\\realtimedrawBE\\RealtimeDraw.csproj",
+>>>>>>> 61d4403 (idk)
   "expectedPackageFiles": [
     "C:\\Users\\grigr\\.nuget\\packages\\microsoft.aspnetcore.authentication.abstractions\\2.3.0\\microsoft.aspnetcore.authentication.abstractions.2.3.0.nupkg.sha512",
     "C:\\Users\\grigr\\.nuget\\packages\\microsoft.aspnetcore.authorization\\2.3.0\\microsoft.aspnetcore.authorization.2.3.0.nupkg.sha512",
