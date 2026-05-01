@@ -1,6 +1,6 @@
 # DrawTogether
 
-A real-time collaborative drawing app where up to 4 users can draw together on a shared canvas simultaneously.
+A real-time collaborative drawing app where users can draw together on a shared canvas simultaneously.
 
 🔗 **Live demo:** [drawtogether-b1988.web.app](https://drawtogether-b1988.web.app)
 
@@ -26,7 +26,7 @@ A real-time collaborative drawing app where up to 4 users can draw together on a
 
 ## How it works
 
-When a user draws on the canvas, the stroke data is sent to the SignalR hub on the backend, which immediately broadcasts it to all other connected clients. Each client applies the incoming strokes to their local canvas, keeping everyone in sync in real time.
+When a user draws on the canvas, the stroke data is sent to the SignalR hub on the backend, which immediately broadcasts it to all other connected clients. Each client applies the incoming strokes to their local canvas, keeping everyone in sync in real time. Alo has a live chat.
 
 ## Running locally
 
