@@ -23,9 +23,10 @@ export default function App() {
   const [eraser, setEraser] = useState(false);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
-  const [username, setUsername] = useState("");
   const [isConnected, setIsConnected] = useState(false);
+  const [username, setUsername] = useState("");
   const [roomId, setRoomId] = useState("");
+  const [createRoomId, setcreateRoomId]=useState("");
   const [insertedUsername, setInsUsername] = useState(false);
   const [insertedRoomId, setInsRoomId] = useState(false);
 
