@@ -23,3 +23,15 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+bin/
+obj/
+*.cache
+*.assets.json
+*.nuget.cache
+*.dgspec.json
+*.editorconfig
+*.vspscc
+*.vssscc   
+node_modules/
+*.local
